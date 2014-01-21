@@ -20,7 +20,7 @@
 
 function objectMaker(key, value) {
     var jsonVariable = {};
-    jsonVariable[key] = value
+    jsonVariable[key] = value;
     return jsonVariable;
 }
 /**
@@ -70,8 +70,17 @@ RECOMMENDATION_SYSTEM.prototype = {
      * @param object[] videoData    map of distinct filter data
      */
     setParameters: function(videoData, filterData) {
-        this.videoData = videoData["videoData"];
-        this.filterData = filterData["filterData"];
+        this.videoData = videoData.videoData;
+        this.filterData = filterData.filterData;
+    },
+    setVideoData: function(newVideoData) {
+        this.videoData = newVideoData;
+    },
+    getVideoData: function() {
+        return this.videoData;
+    },
+    getFilterData: function() {
+        return this.filterdata;
     },
     /**
      * Calls all recommendation/filter objects, executes each and the output replaces video data every iteration
@@ -79,15 +88,14 @@ RECOMMENDATION_SYSTEM.prototype = {
      */
     execute: function() {
         var videoData = this.videoData;
-        var filterData = this.filterData;
-        logger("original = " + JSON.stringify(videoData))
+        logger("original = " + JSON.stringify(videoData));
 
         async.forEach(this.recommendationLogicCollection, function(obj, callback) {
             logger(obj.executeMessage);
-            videoData = obj.filter(filterData, videoData)
-            logger("output = " + JSON.stringify(videoData))
+            videoData = obj.filter(videoData, this.filterdata);
+            logger("output = " + JSON.stringify(videoData));
         }, function(err) {
-            logger("final = " + JSON.stringify(videoData))
+            logger("final = " + JSON.stringify(videoData));
         });
 
         return videoData;
@@ -100,7 +108,7 @@ RECOMMENDATION_SYSTEM.prototype = {
  */
 var RECOMMENDATION_LOGIC = function(executeMessage) {
     this.executeMessage = executeMessage;
-}
+};
 RECOMMENDATION_LOGIC.prototype = {
     /**
      * function to be overridden to contain new recommendation/filter logic
@@ -108,10 +116,10 @@ RECOMMENDATION_LOGIC.prototype = {
      * @param object[] videoData   map of distinct filter data
      * @return object[] ist of video data/meta
      */
-    filter: function(filterData, videoData) {
-        return videoData;
+    filter: function(videoData, filterdata) {
+        //do nothing
     }
-}
+};
 
 var filterData = new FILTER_DATA();
 var recommendationSystem = new RECOMMENDATION_SYSTEM();
@@ -149,7 +157,7 @@ function fetchInputs(waterFallCallback) {
              * fetching video data/info
              */
             function(seriesCallback) {
-                videoInfo(seriesCallback)
+                videoInfo(seriesCallback);
             },
             /**
              * fetching filter data
@@ -176,7 +184,7 @@ function fetchInputs(waterFallCallback) {
  */
 
 function recommedationSystem(inputData, waterFallCallback) {
-    recommendationSystem.setParameters(inputData[0], inputData[1])
+    recommendationSystem.setParameters(inputData[0], inputData[1]);
     waterFallCallback(null, recommendationSystem.execute());
 }
 
@@ -191,7 +199,7 @@ function recommend(callback) {
          * @param  object waterFallCallback mandatory async.waterfall parameter
          */
         function(waterFallCallback) {
-            fetchInputs(waterFallCallback)
+            fetchInputs(waterFallCallback);
         },
         /**
          * performs filtering
@@ -199,7 +207,7 @@ function recommend(callback) {
          * @param  object waterFallCallback mandatory async.waterfall parameter
          */
         function(inputData, waterFallCallback) {
-            recommedationSystem(inputData, waterFallCallback)
+            recommedationSystem(inputData, waterFallCallback);
         }
     ], function(err, result) {
         /**
@@ -247,18 +255,23 @@ var sampleFilterLogic1 = new RECOMMENDATION_LOGIC("executing filter1");
  * @param  object value   Attribute value
  * @return object         generated object
  */
-sampleFilterLogic1.filter = function(filterData, videoData) {
+sampleFilterLogic1.filter = function(videoData, filterdata) {
     var index = videoData.indexOf("vid2");
-    if (index)
-        videoData.splice(index, 1);
+    if (index) videoData.splice(index, 1);
     return videoData;
 };
 
 /**
  * adding new filter logic
  */
-recommendationSystem.regRecommendationLogic(sampleFilterLogic1)
+recommendationSystem.regRecommendationLogic(sampleFilterLogic1);
 
 /////////////////////////////////////////////////////////////////////////////////////////
 //- - - - - - - - - - - - END OF ARCHITECTURE USAGE SAMPLES - - - - - - - - - - - -    //
 /////////////////////////////////////////////////////////////////////////////////////////
+
+$("#recommend").click(function() {
+    recommend(function(result) {
+        $("#data").html(JSON.stringify(result));
+    });
+});
