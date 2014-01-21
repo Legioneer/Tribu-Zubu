@@ -7,7 +7,6 @@
  * @Date   January 20, 2014
  */
 
-
 /////////////////////////////////////////////////////////////////////////////////////////
 //- - - - - - - - - - - - START OF DECLARATIONS AND UTILITIES - - - - - - - - - - - -  //
 /////////////////////////////////////////////////////////////////////////////////////////
@@ -18,6 +17,7 @@
  * @param  object value   Attribute value
  * @return object         generated object
  */
+
 function objectMaker(key, value) {
     var jsonVariable = {};
     jsonVariable[key] = value
@@ -27,7 +27,8 @@ function objectMaker(key, value) {
  * internal messaging, to be able to turn messaging on/off and where to display w/o scouring the source code
  * @param  string message
  */
-function logger(message){
+
+function logger(message) {
     alert(message);
 }
 
@@ -81,7 +82,7 @@ RECOMMENDATION_SYSTEM.prototype = {
         var filterData = this.filterData;
         logger("original = " + JSON.stringify(videoData))
 
-        async.forEach(this.recommendationLogicCollection, function(obj, callback){
+        async.forEach(this.recommendationLogicCollection, function(obj, callback) {
             logger(obj.executeMessage);
             videoData = obj.filter(filterData, videoData)
             logger("output = " + JSON.stringify(videoData))
@@ -119,6 +120,99 @@ var recommendationSystem = new RECOMMENDATION_SYSTEM();
 //- - - - - - - - - - - - END OF DECLARATIONS AND UTILITIES - - - - - - - - - - - -   //
 ////////////////////////////////////////////////////////////////////////////////////////
 
+//////////////////////////////////////////////////////////////////////////////////////
+//- - - - - - - - - - - - START OF ARCHITECTURE OPERATIONS - - - - - - - - - - - -  //
+//////////////////////////////////////////////////////////////////////////////////////
+
+/**
+ * function to be overriden to add the approriate video data
+ * @param  object seriesCallback mandatory async.series parameter
+ */
+
+function videoInfo(seriesCallback) {
+    seriesCallback(null, {
+        videoData: ["vid1", "vid2", "vid3"]
+    });
+}
+
+/**
+ * to facilitate fetching of both video data and filter data
+ * @param  object waterFallCallback mandatory async.waterfall parameter
+ */
+
+function fetchInputs(waterFallCallback) {
+    /**
+     * Since there is a big possibility that data are fetched asynchronously, functions for fetching data are wrapped in async.series
+     */
+    async.series([
+            /**
+             * fetching video data/info
+             */
+            function(seriesCallback) {
+                videoInfo(seriesCallback)
+            },
+            /**
+             * fetching filter data
+             */
+            function(seriesCallback) {
+                seriesCallback(null, {
+                    filterData: filterData.getFilterData()
+                });
+            }
+        ],
+        /**
+         * video data and filter data are combined into one array - results
+         */
+
+        function(err, results) {
+            waterFallCallback(null, results);
+        });
+}
+
+/**
+ * performs actual filtering of video data
+ * @param  object[] filter data and video data
+ * @param  object waterFallCallback mandatory async.waterfall parameter
+ */
+
+function recommedationSystem(inputData, waterFallCallback) {
+    recommendationSystem.setParameters(inputData[0], inputData[1])
+    waterFallCallback(null, recommendationSystem.execute());
+}
+
+/**
+ * since there is a big possibility that data accural and filter operations might be asychronous, function are wrapped in async.waterfall
+ */
+
+function recommend(callback) {
+    async.waterfall([
+        /**
+         * performs data accural
+         * @param  object waterFallCallback mandatory async.waterfall parameter
+         */
+        function(waterFallCallback) {
+            fetchInputs(waterFallCallback)
+        },
+        /**
+         * performs filtering
+         * @param  object[] inputData results from data accural
+         * @param  object waterFallCallback mandatory async.waterfall parameter
+         */
+        function(inputData, waterFallCallback) {
+            recommedationSystem(inputData, waterFallCallback)
+        }
+    ], function(err, result) {
+        /**
+         * Contains final filtered output, will be modified when applied to the actual resource app to output the video data directly
+         */
+        //$("#data").html(JSON.stringify(result));
+        callback(result);
+    });
+}
+
+//////////////////////////////////////////////////////////////////////////////////////
+//- - - - - - - - - - - - END OF ARCHITECTURE OPERATIONS - - - - - - - - - - - -  //
+//////////////////////////////////////////////////////////////////////////////////////
 
 //////////////////////////////////////////////////////////////////////////////////////////
 //- - - - - - - - - - - - START OF ARCHITECTURE USAGE SAMPLES - - - - - - - - - - - -   //
@@ -127,12 +221,14 @@ var recommendationSystem = new RECOMMENDATION_SYSTEM();
 /**
  * sampleFilterData1 and sampleFilterData2 returns filter/recommendation data in form of an object array
  * this is used as entry point of data to the system from any source
- * 
+ *
  * @return object[] data that could be understood by the recommendation/filter logic
  */
+
 function sampleFilterData1() {
     return ["1data1", "2data1", "3data1"];
 }
+
 function sampleFilterData2() {
     return ["1data2", "2data2", "3data2"];
 }
@@ -169,88 +265,8 @@ recommendationSystem.regRecommendationLogic(sampleFilterLogic1)
 //- - - - - - - - - - - - END OF ARCHITECTURE USAGE SAMPLES - - - - - - - - - - - -    //
 ///////////////////////////////////////////////////////////////////////////////////////////
 
-//////////////////////////////////////////////////////////////////////////////////////
-//- - - - - - - - - - - - START OF ARCHITECTURE OPERATIONS - - - - - - - - - - - -  //
-//////////////////////////////////////////////////////////////////////////////////////
-
-/**
- * function to be overriden to add the approriate video data
- * @param  object seriesCallback mandatory async.series parameter
- */
-function videoInfo(seriesCallback) {
-    seriesCallback(null, {
-        videoData: ["vid1", "vid2", "vid3"]
+$("#recommend").click(function() {
+    recommend(function(result) {
+        $("#data").html(JSON.stringify(result));
     });
-}
-
-/**
- * to facilitate fetching of both video data and filter data
- * @param  object waterFallCallback mandatory async.waterfall parameter
- */
-function fetchInputs(waterFallCallback) {
-    /**
-     * Since there is a big possibility that data are fetched asynchronously, functions for fetching data are wrapped in async.series
-     */
-    async.series([
-            /**
-             * fetching video data/info
-             */
-            function(seriesCallback) {
-                videoInfo(seriesCallback)
-            },
-            /**
-             * fetching filter data
-             */
-            function(seriesCallback) {
-                seriesCallback(null, {
-                    filterData: filterData.getFilterData()
-                });
-            }
-        ],
-        /**
-         * video data and filter data are combined into one array - results
-         */
-        function(err, results) {
-            waterFallCallback(null, results);
-        });
-}
-
-/**
- * performs actual filtering of video data
- * @param  object[] filter data and video data
- * @param  object waterFallCallback mandatory async.waterfall parameter
- */
-function recommedationSystem(inputData, waterFallCallback) {
-    recommendationSystem.setParameters(inputData[0], inputData[1])
-    waterFallCallback(null, recommendationSystem.execute());
-}
-
-/**
- * since there is a big possibility that data accural and filter operations might be asychronous, function are wrapped in async.waterfall
- */
-async.waterfall([
-    /**
-     * performs data accural
-     * @param  object waterFallCallback mandatory async.waterfall parameter
-     */
-    function(waterFallCallback) {
-        fetchInputs(waterFallCallback)
-    },
-    /**
-     * performs filtering
-     * @param  object[] inputData results from data accural
-     * @param  object waterFallCallback mandatory async.waterfall parameter
-     */
-    function(inputData, waterFallCallback) {
-        recommedationSystem(inputData, waterFallCallback)
-    }
-], function(err, result) {
-    /**
-     * Contains final filtered output, will be modified when applied to the actual resource app to output the video data directly
-     */
-    $("#data").html(JSON.stringify(result));
 });
-
-//////////////////////////////////////////////////////////////////////////////////////
-//- - - - - - - - - - - - END OF ARCHITECTURE OPERATIONS - - - - - - - - - - - -  //
-//////////////////////////////////////////////////////////////////////////////////////

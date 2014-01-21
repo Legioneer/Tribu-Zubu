@@ -1,0 +1,24 @@
+<html>
+
+<head>
+    <title>Recommend Architecture sample</title>
+    <script type="text/javascript" src="http://code.jquery.com/jquery-1.10.2.min.js"></script>
+    <script type="text/javascript" src="https://raw2.github.com/caolan/async/master/lib/async.js"></script>
+    <script type="text/javascript" src="RecommendationArchitachture.js"></script>
+</head>
+
+<body>
+    <button id="recommend">recommend</button>
+    <div id='data'>
+    </div>
+
+    <script type="text/javascript">
+    $("#recommend").click(function() {
+        recommend(function(result) {
+            $("#data").html(JSON.stringify(result));
+        });
+    });
+    </script>
+</body>
+
+</html>
