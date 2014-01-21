@@ -264,9 +264,3 @@ recommendationSystem.regRecommendationLogic(sampleFilterLogic1)
 ///////////////////////////////////////////////////////////////////////////////////////////
 //- - - - - - - - - - - - END OF ARCHITECTURE USAGE SAMPLES - - - - - - - - - - - -    //
 ///////////////////////////////////////////////////////////////////////////////////////////
-
-$("#recommend").click(function() {
-    recommend(function(result) {
-        $("#data").html(JSON.stringify(result));
-    });
-});
