@@ -226,11 +226,14 @@ function recommend(callback) {
  */
 
 function sampleFilterData1() {
-    return ["1data1", "2data1", "3data1"];
+    /**
+     * adding new filter data, the first parameter is the key to map to that filter data
+     */
+    filterData.regFilterDataObject("first", ["1data1", "2data1", "3data1"]);
 }
 
 function sampleFilterData2() {
-    return ["1data2", "2data2", "3data2"];
+    filterData.regFilterDataObject("second", ["1data2", "2data2", "3data2"]);
 }
 
 /**
@@ -251,11 +254,6 @@ sampleFilterLogic1.filter = function(filterData, videoData) {
     return videoData;
 };
 
-/**
- * adding new filter data, the first parameter is the key to map to that filter data
- */
-filterData.regFilterDataObject("first", sampleFilterData1());
-filterData.regFilterDataObject("second", sampleFilterData2());
 /**
  * adding new filter logic
  */
