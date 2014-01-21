@@ -80,12 +80,15 @@ RECOMMENDATION_SYSTEM.prototype = {
         var videoData = this.videoData;
         var filterData = this.filterData;
         logger("original = " + JSON.stringify(videoData))
-        this.recommendationLogicCollection.forEach(function(obj) {
+
+        async.forEach(this.recommendationLogicCollection, function(obj, callback){
             logger(obj.executeMessage);
             videoData = obj.filter(filterData, videoData)
-            logger("result = " + JSON.stringify(videoData))
+            logger("output = " + JSON.stringify(videoData))
+        }, function(err) {
+            logger("final = " + JSON.stringify(videoData))
         });
-        logger("final = " + JSON.stringify(videoData))
+
         return videoData;
     }
 };
