@@ -1,7 +1,7 @@
 /**
  * RECOMMENDATION ARCHITECTURE
  *
- * To provide a plugin architecture that could be with filterdata and logic at any time without changing the entire code
+ * To provide a plugin architecture that could be added with filterdata and logic at any time without changing the entire code
  *
  * @author Joseph Panuncillo
  * @Date   January 20, 2014
@@ -33,7 +33,7 @@ function logger(message) {
 }
 
 /** Object that provides methods for adding new filter data */
-var FILTER_DATA = function() {
+var FILTER_DATA = function () {
     this.filterDataCollection = [];
 };
 FILTER_DATA.prototype = {
@@ -42,16 +42,16 @@ FILTER_DATA.prototype = {
      * @param  string key                   object ID
      * @param  function newFilterDataObject object that returns the new filter data
      */
-    regFilterDataObject: function(key, newFilterDataObject) {
+    regFilterDataObject: function (key, newFilterDataObject) {
         this.filterDataCollection.push(objectMaker(key, newFilterDataObject));
     },
-    getFilterData: function() {
+    getFilterData: function () {
         return this.filterDataCollection;
     }
 };
 
 /** Object that provides methods for adding new filter logic */
-var RECOMMENDATION_SYSTEM = function() {
+var RECOMMENDATION_SYSTEM = function () {
     this.recommendationLogicCollection = [];
     this.videoData = [];
     this.filterData = [];
@@ -61,7 +61,7 @@ RECOMMENDATION_SYSTEM.prototype = {
      * adds new recommendation/filter logic
      * @param  RECOMMENDATION_LOGIC instance that contains new recommendation/filter
      */
-    regRecommendationLogic: function(newRecommendationLogic) {
+    regRecommendationLogic: function (newRecommendationLogic) {
         this.recommendationLogicCollection.push(newRecommendationLogic);
     },
     /**
@@ -69,32 +69,34 @@ RECOMMENDATION_SYSTEM.prototype = {
      * @param object[] filterData  list of video data/meta
      * @param object[] videoData    map of distinct filter data
      */
-    setParameters: function(videoData, filterData) {
+    setParameters: function (videoData, filterData) {
         this.videoData = videoData.videoData;
         this.filterData = filterData.filterData;
     },
-    setVideoData: function(newVideoData) {
+    setVideoData: function (newVideoData) {
         this.videoData = newVideoData;
     },
-    getVideoData: function() {
+    getVideoData: function () {
         return this.videoData;
     },
-    getFilterData: function() {
+    getFilterData: function () {
         return this.filterdata;
     },
     /**
      * Calls all recommendation/filter objects, executes each and the output replaces video data every iteration
      * @return final video data
      */
-    execute: function() {
+    execute: function () {
         var videoData = this.videoData;
         logger("original = " + JSON.stringify(videoData));
 
-        async.forEach(this.recommendationLogicCollection, function(obj, callback) {
+        async.forEach(this.recommendationLogicCollection, function (obj, callback) {
             logger(obj.executeMessage);
-            videoData = obj.filter(videoData, this.filterdata);
+            obj.filter(videoData, this.filterdata, function (outputVideoData) {
+                videoData = outputVideoData;
+            });
             logger("output = " + JSON.stringify(videoData));
-        }, function(err) {
+        }, function (err) {
             logger("final = " + JSON.stringify(videoData));
         });
 
@@ -106,7 +108,7 @@ RECOMMENDATION_SYSTEM.prototype = {
  * Object that wraps new filter logics to make it usable by the system
  * @param string executeMessage Message display when filter logic is executed
  */
-var RECOMMENDATION_LOGIC = function(executeMessage) {
+var RECOMMENDATION_LOGIC = function (executeMessage) {
     this.executeMessage = executeMessage;
 };
 RECOMMENDATION_LOGIC.prototype = {
@@ -116,7 +118,7 @@ RECOMMENDATION_LOGIC.prototype = {
      * @param object[] videoData   map of distinct filter data
      * @return object[] ist of video data/meta
      */
-    filter: function(videoData, filterdata) {
+    filter: function (videoData, filterdata, callback) {
         //do nothing
     }
 };
@@ -153,28 +155,27 @@ function fetchInputs(waterFallCallback) {
      * Since there is a big possibility that data are fetched asynchronously, functions for fetching data are wrapped in async.series
      */
     async.series([
-            /**
-             * fetching video data/info
-             */
-            function(seriesCallback) {
-                videoInfo(seriesCallback);
-            },
-            /**
-             * fetching filter data
-             */
-            function(seriesCallback) {
-                seriesCallback(null, {
-                    filterData: filterData.getFilterData()
-                });
-            }
-        ],
-        /**
-         * video data and filter data are combined into one array - results
-         */
-
-        function(err, results) {
-            waterFallCallback(null, results);
+    /**
+     * fetching video data/info
+     */
+    function (seriesCallback) {
+        videoInfo(seriesCallback);
+    },
+    /**
+     * fetching filter data
+     */
+    function (seriesCallback) {
+        seriesCallback(null, {
+            filterData: filterData.getFilterData()
         });
+    }],
+    /**
+     * video data and filter data are combined into one array - results
+     */
+
+    function (err, results) {
+        waterFallCallback(null, results);
+    });
 }
 
 /**
@@ -194,22 +195,21 @@ function recommedationSystem(inputData, waterFallCallback) {
 
 function recommend(callback) {
     async.waterfall([
-        /**
-         * performs data accural
-         * @param  object waterFallCallback mandatory async.waterfall parameter
-         */
-        function(waterFallCallback) {
-            fetchInputs(waterFallCallback);
-        },
-        /**
-         * performs filtering
-         * @param  object[] inputData results from data accural
-         * @param  object waterFallCallback mandatory async.waterfall parameter
-         */
-        function(inputData, waterFallCallback) {
-            recommedationSystem(inputData, waterFallCallback);
-        }
-    ], function(err, result) {
+    /**
+     * performs data accural
+     * @param  object waterFallCallback mandatory async.waterfall parameter
+     */
+    function (waterFallCallback) {
+        fetchInputs(waterFallCallback);
+    },
+    /**
+     * performs filtering
+     * @param  object[] inputData results from data accural
+     * @param  object waterFallCallback mandatory async.waterfall parameter
+     */
+    function (inputData, waterFallCallback) {
+        recommedationSystem(inputData, waterFallCallback);
+    }], function (err, result) {
         /**
          * Contains final filtered output, will be modified when applied to the actual resource app to output the video data directly
          */
@@ -255,10 +255,10 @@ var sampleFilterLogic1 = new RECOMMENDATION_LOGIC("executing filter1");
  * @param  object value   Attribute value
  * @return object         generated object
  */
-sampleFilterLogic1.filter = function(videoData, filterdata) {
+sampleFilterLogic1.filter = function (videoData, filterdata, callback) {
     var index = videoData.indexOf("vid2");
     if (index) videoData.splice(index, 1);
-    return videoData;
+    callback(videoData);
 };
 
 /**
@@ -270,8 +270,8 @@ recommendationSystem.regRecommendationLogic(sampleFilterLogic1);
 //- - - - - - - - - - - - END OF ARCHITECTURE USAGE SAMPLES - - - - - - - - - - - -    //
 /////////////////////////////////////////////////////////////////////////////////////////
 
-$("#recommend").click(function() {
-    recommend(function(result) {
+$("#recommend").click(function () {
+    recommend(function (result) {
         $("#data").html(JSON.stringify(result));
     });
 });
